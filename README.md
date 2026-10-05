@@ -16,6 +16,13 @@ Free English-language TV channels, each one checked to be working when the list 
 
 The shortcuts read the list from the web every time, so they always open the newest version.
 
+## Ad skip (Roku and Ubuntu Touch apps)
+
+Many free channels mark their ad breaks in the stream, and most Pluto TV channels do. During a marked break the apps switch to a channel you choose (MTV Biggest Pop unless you pick another) and come back when the break is over.
+
+- **Roku:** press Play on any channel in the list to use it during ads. During a break, press Back to return to the show early.
+- **Ubuntu Touch:** tap the gear at the top, then *Channel during ads*. During a break, tap *Back now* to return early.
+
 ## What is in this repository
 
 | Path | What it is |
@@ -24,6 +31,7 @@ The shortcuts read the list from the web every time, so they always open the new
 | `penalty-box.m3u` | Channels that failed the last check; they come back when they work again |
 | `vlc/` | One-click VLC shortcuts for Windows and Linux |
 | `revell-tv/` | The Revell T.V app for Roku |
+| `ubuntu-touch/` | The Revell T.V app for Ubuntu Touch phones (`install-on-phone.sh` installs it over USB with developer mode on) |
 | `index.html` | The watch page |
 
 Channels come from the public [iptv-org](https://github.com/iptv-org/iptv) list, narrowed down to English. Nothing is hosted here except the lists.

@@ -2,10 +2,13 @@ import QtQuick 2.12
 import Lomiri.Components 1.3
 
 // One channel in a list: logo, name, category, and a star that saves it.
+// While picking the channel for ad breaks, a tick marks the current one instead.
 ListItem {
     id: row
     property var channel
+    property bool picking: false
     readonly property bool saved: root.savedIds[channel.id] === true
+    readonly property bool chosen: picking && root.breakChannel !== null && root.breakChannel.id === channel.id
     signal watch()
 
     height: units.gu(8)
@@ -60,6 +63,8 @@ ListItem {
         id: star
         anchors { right: parent.right; top: parent.top; bottom: parent.bottom }
         width: units.gu(7)
+        enabled: !row.picking
+        opacity: row.picking ? 0 : 1
         onClicked: root.toggleSaved(row.channel)
 
         Icon {
@@ -69,5 +74,14 @@ ListItem {
             name: row.saved ? "starred" : "non-starred"
             color: row.saved ? root.accent : theme.palette.normal.baseText
         }
+    }
+
+    Icon {
+        anchors.centerIn: star
+        width: units.gu(3)
+        height: width
+        visible: row.chosen
+        name: "tick"
+        color: root.accent
     }
 }

@@ -5,6 +5,9 @@ import QtSystemInfo 5.0
 import Lomiri.Components 1.3
 
 // Full screen video. Tap to show or hide the controls; swipe left or right to change channel.
+//
+// Ad skip: while a channel plays, AdWatcher reads its playlist for ad breaks. During a
+// break the chosen break channel stands in, and the channel comes back when the break ends.
 Page {
     id: page
     property var channels: []
@@ -18,16 +21,67 @@ Page {
     property bool controlsShown: true
     property bool slow: false
 
+    readonly property var breakChannel: root.breakChannel
+    readonly property bool watchingForAds: root.adSkip && breakChannel !== null && channel !== undefined
+                                           && channel.id !== breakChannel.id
+    property bool onBreak: false     // the break channel is standing in for an ad break
+    property bool breakHold: false   // stay on the channel for the rest of this break
+
     header: Item {}
 
     onPlayingChanged: if (playing) hideTimer.restart()
 
+    onFailedChanged: {
+        // The break channel let us down: go back to the show and sit this break out.
+        if (failed && onBreak) {
+            console.log("Revell T.V: break channel failed");
+            leaveBreak(true);
+        }
+    }
+
+    onWatchingForAdsChanged: if (!watchingForAds) leaveBreak(false)
+
     function change(step) {
+        onBreak = false;
+        breakHold = false;
         index = (index + step + channels.length) % channels.length;
-        slow = false;
-        slowTimer.restart();
         showControls(true);
         video.play();
+    }
+
+    // The watcher changed its mind about whether the viewer is in a break.
+    function adSignal() {
+        if (!adWatcher.armed) {
+            return;
+        }
+        if (onBreak) {
+            if (!adWatcher.soonAd) {
+                console.log("Revell T.V: break ending, back to", channel.name);
+                leaveBreak(false);
+            }
+        } else if (adWatcher.nowAd) {
+            enterBreak();
+        } else {
+            breakHold = false;
+        }
+    }
+
+    function enterBreak() {
+        if (onBreak || breakHold || !watchingForAds) {
+            return;
+        }
+        console.log("Revell T.V: ad break on", channel.name, "- switching to", breakChannel.name);
+        onBreak = true;
+    }
+
+    function leaveBreak(hold) {
+        if (!onBreak) {
+            return;
+        }
+        onBreak = false;
+        // Never go back to the break channel for the same break: if the playlist says
+        // its tail is still running, wait it out. The hold lifts when the show is back.
+        breakHold = adWatcher.armed ? adWatcher.nowAd : hold;
     }
 
     function showControls(show) {
@@ -47,7 +101,11 @@ Page {
         anchors.fill: parent
         autoPlay: true
         fillMode: VideoOutput.PreserveAspectFit
-        source: page.channel ? page.channel.url : ""
+        source: page.onBreak && page.breakChannel ? page.breakChannel.url : (page.channel ? page.channel.url : "")
+        onSourceChanged: {
+            page.slow = false;
+            slowTimer.restart();
+        }
         onPlaybackStateChanged: console.log("Revell T.V: playback state", playbackState, "status", status)
         onStatusChanged: console.log("Revell T.V: status", status)
         onErrorChanged: console.log("Revell T.V: error", error, errorString)
@@ -176,6 +234,56 @@ Page {
         interval: 20000
         running: true
         onTriggered: page.slow = true
+    }
+
+    AdWatcher {
+        id: adWatcher
+        url: page.watchingForAds ? page.channel.url : ""
+        onNowAdChanged: page.adSignal()
+        onSoonAdChanged: page.adSignal()
+    }
+
+    // If the playlist stops answering during a break, go back rather than stay away.
+    Timer {
+        interval: 5000
+        repeat: true
+        running: page.onBreak
+        onTriggered: {
+            if (Date.now() - adWatcher.lastReport > 30000) {
+                console.log("Revell T.V: playlist went quiet during the break");
+                page.leaveBreak(false);
+            }
+        }
+    }
+
+    // Shown for the whole break, above the controls.
+    Rectangle {
+        anchors { left: parent.left; right: parent.right; bottom: parent.bottom; bottomMargin: units.gu(10) }
+        height: breakRow.height + units.gu(2)
+        visible: page.onBreak
+        color: "#E60A081C"
+
+        Row {
+            id: breakRow
+            anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: units.gu(2) }
+            spacing: units.gu(2)
+
+            Label {
+                width: parent.width - backNow.width - parent.spacing
+                anchors.verticalCenter: parent.verticalCenter
+                wrapMode: Text.WordWrap
+                color: "white"
+                text: page.onBreak && page.breakChannel ? "Ad break on " + page.channel.name + ". Watching "
+                                     + page.breakChannel.name + " until it is over." : ""
+            }
+            Button {
+                id: backNow
+                anchors.verticalCenter: parent.verticalCenter
+                text: "Back now"
+                color: root.accent
+                onClicked: page.leaveBreak(true)
+            }
+        }
     }
 
     ScreenSaver {

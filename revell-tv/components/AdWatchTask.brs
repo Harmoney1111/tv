@@ -10,6 +10,7 @@ sub init()
 end sub
 
 sub watch()
+    m.armed = false
     playlistUrl = findMediaPlaylist(m.top.url)
     if playlistUrl = "" then return
     print "ad watch: following "; playlistUrl.Left(110)
@@ -64,6 +65,14 @@ sub report(text as string)
     if soon > count - 1 then soon = count - 1
 
     m.top.edge = sequence + count - 1
+
+    ' A new Pluto session opens with an ad bumper of its own. Nothing counts as a
+    ' break until the programme has been seen once.
+    if not m.armed then
+        if segments[viewer].ad then return
+        m.armed = true
+    end if
+
     m.top.usable = true
     m.top.nowAd = segments[viewer].ad
     m.top.soonAd = segments[soon].ad

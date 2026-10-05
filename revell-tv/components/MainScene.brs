@@ -38,6 +38,7 @@ sub init()
     m.watch = invalid      ' AdWatchTask following that channel
     m.onBreak = false      ' the music channel is standing in for an ad break
     m.breakHold = false    ' the viewer asked to stay on the channel through this break
+    m.segmentArmed = false ' the player has shown some programme since the stream started
 
     m.menuList.observeField("itemFocused", "onMenuFocused")
     m.menuList.observeField("itemSelected", "onMenuSelected")
@@ -255,6 +256,9 @@ sub playChannel(index as integer)
 end sub
 
 sub startStream(channel as object)
+    ' Every new Pluto session opens with an ad bumper, so the player's own ad
+    ' segments only count once it has shown some of the programme.
+    m.segmentArmed = false
     content = CreateObject("roSGNode", "ContentNode")
     content.title = channel.title
     content.url = channel.url
@@ -396,9 +400,10 @@ sub onSegment()
     end if
 
     if adLikeUrl(segment.segUrl) then
-        enterBreak("ad segment")
-    else if m.breakHold and not watchUsable() then
-        m.breakHold = false
+        if m.segmentArmed then enterBreak("ad segment")
+    else
+        m.segmentArmed = true
+        if m.breakHold and not watchUsable() then m.breakHold = false
     end if
 end sub
 
@@ -409,7 +414,8 @@ sub enterBreak(reason as string)
 
     print "ad skip: break on "; m.main.title; " ("; reason; "), switching to "; music.title
     m.onBreak = true
-    m.bannerText.text = "Ad break on " + m.main.title + "   -   music until it is over   -   press * to go back now"
+    ' The Roku keeps * for its captions menu while video plays, so Back is the way out.
+    m.bannerText.text = "Ad break on " + m.main.title + "   -   " + music.title + " until it is over   -   press Back to return now"
     m.banner.visible = true
     startStream({ title: music.title, url: music.url, streamFormat: music.streamFormat })
 
@@ -554,11 +560,11 @@ function onKeyEvent(key as string, press as boolean) as boolean
 
     if m.playing then
         if key = "back" then
-            stopVideo()
-            return true
-        end if
-        if key = "options" and m.onBreak then
-            leaveBreak(true)
+            if m.onBreak then
+                leaveBreak(true)
+            else
+                stopVideo()
+            end if
             return true
         end if
         if key = "up" or key = "down" then

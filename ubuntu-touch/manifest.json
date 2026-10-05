@@ -2,7 +2,7 @@
     "name": "revell-tv.harmoney1111",
     "title": "Revell T.V",
     "description": "Free English-language TV channels",
-    "version": "1.0.1",
+    "version": "1.1.1",
     "architecture": "all",
     "framework": "ubuntu-sdk-20.04",
     "maintainer": "Harmoney1111 <Harmoney1111@users.noreply.github.com>",

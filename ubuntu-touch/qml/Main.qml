@@ -1,6 +1,6 @@
 // Revell T.V for Ubuntu Touch: loads the channel list from GitHub Pages at every start,
 // shows Saved, Popular, All channels and the categories, and plays a channel when tapped.
-// Saved channels are remembered on the phone.
+// Saved channels and the ad skip choices are remembered on the phone.
 import QtQuick 2.12
 import Qt.labs.settings 1.0
 import Lomiri.Components 1.3
@@ -21,10 +21,16 @@ MainView {
     property var savedIds: ({})
     property var savedChannels: []
     property string listState: "loading"   // loading, ready or failed
+    property bool openedFromArguments: false
+
+    property alias adSkip: settings.adSkip
+    readonly property var breakChannel: findBreakChannel(channels, settings.breakChannelId)
 
     Settings {
         id: settings
         property string saved: "[]"
+        property bool adSkip: true
+        property string breakChannelId: ""
     }
 
     function load() {
@@ -42,6 +48,7 @@ MainView {
             channels = list;
             refreshSaved();
             listState = "ready";
+            openFromArguments();
         };
         request.open("GET", listAddress);
         request.send();
@@ -66,6 +73,60 @@ MainView {
         refreshSaved();
     }
 
+    // The chosen channel, or MTV Biggest Pop like on the Roku, or else the first music channel.
+    function findBreakChannel(list, id) {
+        var fallback = null;
+        for (var i = 0; i < list.length; i++) {
+            if (list[i].id === id) {
+                return list[i];
+            }
+        }
+        for (var m = 0; m < list.length; m++) {
+            if (list[m].group !== "Music") {
+                continue;
+            }
+            if (list[m].name.toLowerCase().indexOf("mtv biggest pop") === 0) {
+                return list[m];
+            }
+            fallback = fallback || list[m];
+        }
+        return fallback;
+    }
+
+    function setBreakChannel(channel) {
+        settings.breakChannelId = channel.id;
+    }
+
+    // "revelltv:<start of a channel name>" on the command line opens that channel,
+    // e.g. lomiri-app-launch <app id> "revelltv:MTV%20Biggest%20Pop".
+    function openFromArguments() {
+        if (openedFromArguments) {
+            return;
+        }
+        openedFromArguments = true;
+        var args = Qt.application.arguments;
+        for (var i = 0; i < args.length; i++) {
+            if (args[i].indexOf("revelltv:") !== 0) {
+                continue;
+            }
+            var wanted = decodeURIComponent(args[i].substring(9)).toLowerCase();
+            for (var c = 0; c < channels.length; c++) {
+                if (channels[c].name.toLowerCase().indexOf(wanted) === 0) {
+                    watch(channels, c);
+                    return;
+                }
+            }
+        }
+    }
+
+    function openAdSkip() {
+        stack.push(adSkipPage);
+    }
+
+    function chooseBreakChannel() {
+        stack.push(breakChannelPage);
+    }
+
     function openChannels(title, list) {
         stack.push(channelsPage, { title: title, channels: list, savedList: title === "Saved" });
     }
@@ -78,6 +139,8 @@ MainView {
     Component { id: homePage; HomePage {} }
     Component { id: channelsPage; ChannelsPage {} }
     Component { id: playerPage; PlayerPage {} }
+    Component { id: adSkipPage; AdSkipPage {} }
+    Component { id: breakChannelPage; BreakChannelPage {} }
 
     PageStack {
         id: stack

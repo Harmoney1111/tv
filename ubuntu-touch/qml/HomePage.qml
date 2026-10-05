@@ -19,6 +19,11 @@ Page {
         }
         trailingActionBar.actions: [
             Action {
+                iconName: "settings"
+                text: "Ad skip"
+                onTriggered: root.openAdSkip()
+            },
+            Action {
                 iconName: "reload"
                 text: "Reload the channel list"
                 onTriggered: root.load()
