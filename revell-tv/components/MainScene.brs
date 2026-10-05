@@ -244,9 +244,14 @@ sub onChannelSelected()
     shown = m.channels.content
     if m.playing and not m.fullScreen and shown <> invalid then
         item = shown.getChild(index)
-        ' Picking the channel that is playing in the window just makes it full screen.
+        ' Picking the channel that is playing in the window makes it full screen, and
+        ' during an ad break it means "back to my show now".
         if item <> invalid and item.id = m.playId then
             m.playIndex = index
+            if m.onBreak then
+                print "ad skip: back to "; m.main.title; " before the break is over"
+                leaveBreak(true)
+            end if
             showFullScreen()
             return
         end if
@@ -337,7 +342,7 @@ sub updatePreviewNote()
     if m.main = invalid then return
     m.previewTitle.text = m.main.title
     if m.onBreak and m.byId.DoesExist(m.breakChannelId) then
-        m.previewNote.text = "Ad break: " + m.byId[m.breakChannelId].title + " until it is over"
+        m.previewNote.text = "Ad break: " + m.byId[m.breakChannelId].title + " until it is over. Pick " + m.main.title + " again to go back to it now."
     else
         m.previewNote.text = "Pick it again for full screen. Back on the menu stops it."
     end if
@@ -476,8 +481,9 @@ sub enterBreak(reason as string)
 
     print "ad skip: break on "; m.main.title; " ("; reason; "), switching to "; music.title
     m.onBreak = true
-    ' The Roku keeps * for its captions menu while video plays, so OK is the way out.
-    m.bannerText.text = "Ad break on " + m.main.title + "   -   " + music.title + " until it is over   -   press OK to return now"
+    ' Only Back, Up and Down reach the app while video plays, so the way out is Back
+    ' and then picking the channel again in the list.
+    m.bannerText.text = "Ad break on " + m.main.title + "   -   " + music.title + " until it is over   -   press Back and pick it again to return now"
     m.banner.visible = m.fullScreen
     updatePreviewNote()
     startStream({ title: music.title, url: music.url, streamFormat: music.streamFormat })
@@ -622,16 +628,12 @@ end sub
 function onKeyEvent(key as string, press as boolean) as boolean
     if not press then return false
 
-    ' While a channel plays full screen the Video node keeps every key except OK, Back,
-    ' Up and Down. Back always goes to the list (a break carries on in the window), so
-    ' OK is the way back to the show during a break.
+    ' While a channel plays full screen the Video node keeps every key except Back, Up
+    ' and Down (OK and * never arrive). Back always goes to the list, where a break
+    ' carries on in the window; picking the channel there ends the break early.
     if m.fullScreen then
         if key = "back" then
             showPreview()
-            return true
-        end if
-        if key = "OK" and m.onBreak then
-            leaveBreak(true)
             return true
         end if
         if key = "up" or key = "down" then

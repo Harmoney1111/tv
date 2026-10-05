@@ -20,14 +20,14 @@ The shortcuts read the list from the web every time, so they always open the new
 
 Many free channels mark their ad breaks in the stream, and most Pluto TV channels do. During a marked break the apps switch to a channel you choose (MTV Biggest Pop unless you pick another) and come back when the break is over.
 
-- **Roku:** press Play on any channel in the list to use it during ads. During a break, press OK to return to the show early.
+- **Roku:** press Play on any channel in the list to use it during ads. During a break, press Back and pick the channel again to return to the show early.
 - **Ubuntu Touch:** tap the gear at the top, then *Channel during ads*. During a break, tap *Back now* to return early.
 
 ## Watching on the Roku
 
 - **OK** on a channel watches it full screen; **Up / Down** change channel.
-- **Back** while watching keeps the channel playing in a window beside the list, also during an ad break. Pick the same channel again for full screen; Back on the menu stops it.
-- **\*** on a channel in the list saves it. (While video plays, the Roku keeps * for its captions menu.)
+- **Back** while watching keeps the channel playing in a window beside the list, also during an ad break. Pick the same channel again for full screen (during a break this also ends the break early); Back on the menu stops it.
+- **\*** on a channel in the list saves it. (While video plays, only Back, Up and Down reach the app; the Roku keeps the other buttons for itself.)
 
 ## What is in this repository
 
