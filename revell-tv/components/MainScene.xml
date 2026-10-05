@@ -22,7 +22,15 @@
         </Group>
 
         <Label id="message" text="Loading channels..." translation="[64, 300]" width="1152" horizAlign="center" wrap="true" font="font:MediumSystemFont" color="0xFFFFFFFF" />
-        <Label id="hint" text="OK: watch      * : save      Play: use for ad breaks      Back: go back      Up / Down while watching: change channel" translation="[64, 664]" font="font:SmallestSystemFont" color="0xC4C8E0FF" />
+        <Label id="hint" text="OK: watch     * : save     Play: use for ad breaks     Back while watching: keep it playing beside the list     Up / Down while watching: change channel" translation="[64, 664]" font="font:SmallestSystemFont" color="0xC4C8E0FF" />
+
+        <!-- after Back the channel keeps playing in this window while the viewer browses -->
+        <Group id="preview" visible="false">
+            <Rectangle translation="[832, 116]" width="392" height="224" color="0xFF2E93FF" />
+            <Rectangle translation="[836, 120]" width="384" height="216" color="0x000000FF" />
+            <Label id="previewTitle" translation="[836, 348]" width="384" font="font:SmallSystemFont" color="0xFFFFFFFF" />
+            <Label id="previewNote" translation="[836, 384]" width="384" wrap="true" font="font:SmallestSystemFont" color="0xC4C8E0FF" />
+        </Group>
 
         <Video id="video" width="1280" height="720" visible="false" />
 

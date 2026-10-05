@@ -6,6 +6,9 @@
 ' Ad skip: while a channel plays, AdWatchTask and the player's own segment
 ' reports say when an ad break starts. The music channel then stands in until
 ' the break is over.
+'
+' Back while watching keeps the channel playing in a window beside the list;
+' picking it again makes it full screen, and Back on the menu stops it.
 
 sub init()
     m.menuList = m.top.findNode("categories")
@@ -16,6 +19,9 @@ sub init()
     m.banner = m.top.findNode("breakBanner")
     m.bannerText = m.top.findNode("breakBannerText")
     m.breakTimer = m.top.findNode("breakTimer")
+    m.preview = m.top.findNode("preview")
+    m.previewTitle = m.top.findNode("previewTitle")
+    m.previewNote = m.top.findNode("previewNote")
 
     m.registry = CreateObject("roRegistrySection", "RevellTV")
     m.savedIds = readList("saved")
@@ -27,7 +33,8 @@ sub init()
     m.total = 0
     m.menuItems = []
     m.music = invalid
-    m.playing = false
+    m.playing = false      ' a channel is playing, full screen or in the window
+    m.fullScreen = false   ' it is full screen and the remote controls it
     m.reachedPlaying = false
     m.playIndex = -1
     m.playId = ""
@@ -233,7 +240,18 @@ end sub
 ' ---------- watching ----------
 
 sub onChannelSelected()
-    playChannel(m.channels.itemSelected)
+    index = m.channels.itemSelected
+    shown = m.channels.content
+    if m.playing and not m.fullScreen and shown <> invalid then
+        item = shown.getChild(index)
+        ' Picking the channel that is playing in the window just makes it full screen.
+        if item <> invalid and item.id = m.playId then
+            m.playIndex = index
+            showFullScreen()
+            return
+        end if
+    end if
+    playChannel(index)
 end sub
 
 sub playChannel(index as integer)
@@ -251,6 +269,7 @@ sub playChannel(index as integer)
     m.onBreak = false
     m.breakHold = false
     m.banner.visible = false
+    showFullScreen()
     startStream(m.main)
     startWatch()
 end sub
@@ -266,19 +285,62 @@ sub startStream(channel as object)
     content.live = true
     m.video.content = content
     m.video.visible = true
-    m.video.setFocus(true)
+    if m.fullScreen then m.video.setFocus(true)
     m.video.control = "play"
 end sub
 
 sub stopVideo()
+    wasFullScreen = m.fullScreen
     m.playing = false
+    m.fullScreen = false
     m.onBreak = false
     m.banner.visible = false
     stopWatch()
     m.video.control = "stop"
     m.video.visible = false
+    m.preview.visible = false
+    m.channels.itemSize = [800, 48]
+    ' From the window the viewer is already in the lists; leave the focus where it is.
+    if wasFullScreen then
+        m.channels.setFocus(true)
+        if m.playIndex >= 0 then m.channels.jumpToItem = m.playIndex
+    end if
+end sub
+
+' ---------- preview window ----------
+
+sub showFullScreen()
+    m.fullScreen = true
+    m.preview.visible = false
+    m.channels.itemSize = [800, 48]
+    m.video.translation = [0, 0]
+    m.video.width = 1280
+    m.video.height = 720
+    m.banner.visible = m.onBreak
+    m.video.setFocus(true)
+end sub
+
+sub showPreview()
+    m.fullScreen = false
+    m.banner.visible = false
+    m.channels.itemSize = [400, 48]
+    m.video.translation = [836, 120]
+    m.video.width = 384
+    m.video.height = 216
+    updatePreviewNote()
+    m.preview.visible = true
     m.channels.setFocus(true)
     if m.playIndex >= 0 then m.channels.jumpToItem = m.playIndex
+end sub
+
+sub updatePreviewNote()
+    if m.main = invalid then return
+    m.previewTitle.text = m.main.title
+    if m.onBreak and m.byId.DoesExist(m.breakChannelId) then
+        m.previewNote.text = "Ad break: " + m.byId[m.breakChannelId].title + " until it is over"
+    else
+        m.previewNote.text = "Pick it again for full screen. Back on the menu stops it."
+    end if
 end sub
 
 sub onVideoState()
@@ -414,9 +476,10 @@ sub enterBreak(reason as string)
 
     print "ad skip: break on "; m.main.title; " ("; reason; "), switching to "; music.title
     m.onBreak = true
-    ' The Roku keeps * for its captions menu while video plays, so Back is the way out.
-    m.bannerText.text = "Ad break on " + m.main.title + "   -   " + music.title + " until it is over   -   press Back to return now"
-    m.banner.visible = true
+    ' The Roku keeps * for its captions menu while video plays, so OK is the way out.
+    m.bannerText.text = "Ad break on " + m.main.title + "   -   " + music.title + " until it is over   -   press OK to return now"
+    m.banner.visible = m.fullScreen
+    updatePreviewNote()
     startStream({ title: music.title, url: music.url, streamFormat: music.streamFormat })
 
     ' When the playlist cannot tell us the break is over, go back and look after a while.
@@ -438,6 +501,7 @@ sub leaveBreak(hold as boolean)
     end if
     m.breakTimer.control = "stop"
     m.banner.visible = false
+    updatePreviewNote()
     startStream(m.main)
 end sub
 
@@ -558,13 +622,16 @@ end sub
 function onKeyEvent(key as string, press as boolean) as boolean
     if not press then return false
 
-    if m.playing then
+    ' While a channel plays full screen the Video node keeps every key except OK, Back,
+    ' Up and Down. Back always goes to the list (a break carries on in the window), so
+    ' OK is the way back to the show during a break.
+    if m.fullScreen then
         if key = "back" then
-            if m.onBreak then
-                leaveBreak(true)
-            else
-                stopVideo()
-            end if
+            showPreview()
+            return true
+        end if
+        if key = "OK" and m.onBreak then
+            leaveBreak(true)
             return true
         end if
         if key = "up" or key = "down" then
@@ -583,6 +650,12 @@ function onKeyEvent(key as string, press as boolean) as boolean
     if m.menuList.isInFocusChain() then
         if key = "right" then
             focusChannels()
+            return true
+        end if
+        ' The first Back on the menu stops the channel in the window; the next one leaves the app.
+        if key = "back" and m.playing then
+            m.status.text = "Stopped " + m.main.title
+            stopVideo()
             return true
         end if
     else if m.channels.isInFocusChain() then
