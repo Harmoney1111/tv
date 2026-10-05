@@ -1,2 +1,4 @@
 /tools/
 /state/
+/.venv/
+__pycache__/

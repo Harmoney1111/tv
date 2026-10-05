@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="PlaylistTask" extends="Task">
+    <interface>
+        <field id="url" type="string" />
+        <field id="content" type="node" />
+        <field id="popular" type="node" />
+        <field id="penalty" type="node" />
+        <field id="total" type="integer" value="0" />
+        <field id="error" type="string" />
+    </interface>
+    <script type="text/brightscript" uri="pkg:/components/PlaylistTask.brs" />
+</component>

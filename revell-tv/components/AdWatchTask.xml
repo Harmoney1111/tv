@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="AdWatchTask" extends="Task">
+    <interface>
+        <!-- in: the channel being watched, and how many segments behind the newest one the player is -->
+        <field id="url" type="string" />
+        <field id="lagSegments" type="integer" value="3" />
+        <!-- out -->
+        <field id="usable" type="boolean" value="false" />
+        <field id="edge" type="integer" value="0" />
+        <field id="nowAd" type="boolean" value="false" />
+        <field id="soonAd" type="boolean" value="false" />
+    </interface>
+    <script type="text/brightscript" uri="pkg:/components/AdRules.brs" />
+    <script type="text/brightscript" uri="pkg:/components/AdWatchTask.brs" />
+</component>

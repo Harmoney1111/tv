@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="MainScene" extends="Scene">
+    <script type="text/brightscript" uri="pkg:/components/AdRules.brs" />
+    <script type="text/brightscript" uri="pkg:/components/MainScene.brs" />
+    <children>
+        <Poster id="wallpaper" uri="pkg:/images/wallpaper.jpg" width="1280" height="720" />
+
+        <Poster id="logo" uri="pkg:/images/logo.png" width="323" height="64" translation="[48, 24]" />
+        <Label id="status" text="" translation="[396, 52]" width="836" horizAlign="right" font="font:SmallSystemFont" color="0xE4E6F6FF" />
+
+        <!-- dark glass behind the lists so the names stay easy to read -->
+        <Rectangle width="1208" height="512" translation="[36, 100]" color="0x0A081CC4" />
+
+        <!-- the groups cut off the half row the lists draw below their last full one -->
+        <Group translation="[40, 108]" clippingRect="[0, 0, 368, 496]">
+            <LabelList id="categories" translation="[24, 12]" itemSize="[320, 48]" numRows="10" vertFocusAnimationStyle="floatingFocus"
+                color="0xE8E8F4FF" focusedColor="0xFFFFFFFF" focusBitmapBlendColor="0xFF2E93FF" focusFootprintBlendColor="0x7A2BFFFF" />
+        </Group>
+        <Group translation="[392, 108]" clippingRect="[0, 0, 852, 496]">
+            <LabelList id="channels" translation="[24, 12]" itemSize="[800, 48]" numRows="10" vertFocusAnimationStyle="floatingFocus"
+                color="0xE8E8F4FF" focusedColor="0xFFFFFFFF" focusBitmapBlendColor="0xFF2E93FF" focusFootprintBlendColor="0x7A2BFFFF" />
+        </Group>
+
+        <Label id="message" text="Loading channels..." translation="[64, 300]" width="1152" horizAlign="center" wrap="true" font="font:MediumSystemFont" color="0xFFFFFFFF" />
+        <Label id="hint" text="OK: watch      * : save      Play: use for ad breaks      Back: go back      Up / Down while watching: change channel" translation="[64, 664]" font="font:SmallestSystemFont" color="0xC4C8E0FF" />
+
+        <Video id="video" width="1280" height="720" visible="false" />
+
+        <!-- shown over the music channel while it stands in for an ad break -->
+        <Rectangle id="breakBanner" visible="false" width="1280" height="44" color="0x0A081CD8">
+            <Label id="breakBannerText" translation="[24, 9]" width="1232" font="font:SmallestSystemFont" color="0xFFFFFFFF" />
+        </Rectangle>
+
+        <!-- for channels whose break length cannot be read: come back and look after this long -->
+        <Timer id="breakTimer" duration="90" repeat="false" />
+    </children>
+</component>
