@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Revell T.V</title>
+<meta name="description" content="Free English-language TV channels, checked to be working. Watch them with VLC media player.">
+<link rel="icon" href="revell-tv/images/icon_hd.png">
+<style>
+  :root {
+    --night: #0a081c;
+    --card: #17132e;
+    --line: #2c2652;
+    --text: #f3f1ff;
+    --muted: #b7b0d9;
+    --pink: #ff2e93;
+    --violet: #7a2bff;
+    --cyan: #00d4ff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--night);
+    color: var(--text);
+    font: 17px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  header {
+    padding: 48px 16px 40px;
+    text-align: center;
+    background: linear-gradient(120deg, #b0127a 0%, var(--violet) 55%, #2a62ff 100%);
+  }
+  header img { width: 260px; max-width: 80%; height: auto; }
+  header p { margin: 16px auto 0; max-width: 34em; font-size: 1.1rem; }
+  main { max-width: 760px; margin: 0 auto; padding: 8px 16px 48px; }
+  h2 { margin: 40px 0 12px; font-size: 1.35rem; }
+  h3 { margin: 0 0 6px; font-size: 1.05rem; }
+  .step {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 18px 20px;
+    margin: 12px 0;
+  }
+  .step p { margin: 6px 0; }
+  .muted { color: var(--muted); }
+  a { color: var(--cyan); }
+  .button {
+    display: inline-block;
+    margin: 8px 8px 4px 0;
+    padding: 10px 18px;
+    border-radius: 999px;
+    background: var(--pink);
+    color: #fff;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .button.alt { background: transparent; border: 2px solid var(--cyan); color: var(--cyan); }
+  .address {
+    display: flex;
+    gap: 8px;
+    margin: 10px 0 4px;
+  }
+  .address input {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: var(--night);
+    color: var(--text);
+    font: 15px ui-monospace, Menlo, Consolas, monospace;
+  }
+  .address button {
+    padding: 10px 16px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--violet);
+    color: #fff;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  ul { margin: 6px 0; padding-left: 1.2em; }
+  kbd {
+    padding: 1px 6px;
+    border-radius: 5px;
+    border: 1px solid var(--line);
+    background: var(--night);
+    font: 0.9em ui-monospace, Menlo, Consolas, monospace;
+  }
+  footer { border-top: 1px solid var(--line); margin-top: 40px; padding-top: 16px; font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<header>
+  <img src="revell-tv/images/logo.png" alt="Revell T.V" width="323" height="64">
+  <p>Free English-language TV. <span id="count">Over a thousand channels</span>, each one checked to be working when the list was last updated. You watch them with VLC media player.</p>
+</header>
+<main>
+  <h2>Watch on a computer, phone or tablet</h2>
+
+  <div class="step">
+    <h3>1. Get VLC media player</h3>
+    <p>VLC is free and plays the channels. It works on Windows, Mac and Linux.</p>
+    <a class="button" href="https://www.videolan.org/vlc/">Download VLC</a>
+    <p class="muted">On a phone or tablet, install VLC from the App Store or Google Play.</p>
+  </div>
+
+  <div class="step">
+    <h3>2. Open the channels</h3>
+    <p><strong>Windows:</strong> download the Revell T.V shortcut and double-click it. Save it on the desktop and it works like an app.</p>
+    <a class="button" href="vlc/Revell-TV.bat" download>Revell T.V for Windows</a>
+    <p class="muted">If Windows says “Windows protected your PC”, click <em>More info</em>, then <em>Run anyway</em>. If VLC is missing, the shortcut opens the VLC website for you.</p>
+
+    <p style="margin-top:18px"><strong>Mac, Linux, phone or tablet:</strong> open VLC and choose <em>Open Network Stream</em> (Windows and Linux: the Media menu; Mac: the File menu; phone: the Network tab). Paste this address and press Play.</p>
+    <div class="address">
+      <input id="list" type="text" readonly value="https://harmoney1111.github.io/tv/english-tv.m3u" aria-label="Channel list address">
+      <button id="copy" type="button">Copy</button>
+    </div>
+    <p class="muted">On Linux you can also save <a href="vlc/revell-tv.desktop" download>revell-tv.desktop</a> into <code>~/.local/share/applications</code> to get a Revell T.V icon in the menu.</p>
+  </div>
+
+  <div class="step">
+    <h3>3. Pick a channel</h3>
+    <ul>
+      <li>The first channel starts playing. Press <kbd>Ctrl</kbd>+<kbd>L</kbd> to see the whole list (Mac: Window menu, Playlist).</li>
+      <li>Double-click a channel to watch it. To find one, type in the search box, for example “news”.</li>
+      <li>Double-click the picture for full screen, and again to leave it.</li>
+    </ul>
+    <p class="muted">Free channels go offline now and then, or only play in some countries. If one does not start, try another.</p>
+  </div>
+
+  <footer class="muted">
+    <p>The list always opens in its newest version, so there is nothing to update. Channels that failed the last check wait in the <a href="penalty-box.m3u">penalty box</a> until they work again.</p>
+    <p>Channels come from the public <a href="https://github.com/iptv-org/iptv">iptv-org</a> list, narrowed down to English. Revell T.V does not host any of them.</p>
+  </footer>
+</main>
+<script>
+  // Show the real number of channels in today's list.
+  fetch("english-tv.m3u")
+    .then(function (response) { return response.ok ? response.text() : ""; })
+    .then(function (text) {
+      var channels = (text.match(/^#EXTINF/gm) || []).length;
+      if (channels > 0) {
+        document.getElementById("count").textContent = channels.toLocaleString("en-US") + " channels";
+      }
+    })
+    .catch(function () {});
+
+  document.getElementById("copy").addEventListener("click", function () {
+    var field = document.getElementById("list");
+    var button = this;
+    function done() { button.textContent = "Copied"; setTimeout(function () { button.textContent = "Copy"; }, 2000); }
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(field.value).then(done, function () { field.select(); });
+    } else {
+      field.select();
+      document.execCommand("copy");
+      done();
+    }
+  });
+</script>
+</body>
+</html>

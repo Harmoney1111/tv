@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Revell T.V
+Comment=Free English-language TV channels in VLC
+Exec=vlc https://harmoney1111.github.io/tv/english-tv.m3u
+Icon=vlc
+Terminal=false
+Categories=AudioVideo;Video;TV;

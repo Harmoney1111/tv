@@ -1,0 +1,2 @@
+# Keep the Windows line endings the launcher needs, also on GitHub Pages.
+*.bat -text
