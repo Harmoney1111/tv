@@ -3,11 +3,14 @@ import QtQuick.Window 2.2
 import QtMultimedia 5.12
 import QtSystemInfo 5.0
 import Lomiri.Components 1.3
+import "pluto.js" as Pluto
 
 // Full screen video. Tap to show or hide the controls; swipe left or right to change channel.
 //
 // Ad skip: while a channel plays, AdWatcher reads its playlist for ad breaks. During a
 // break the chosen break channel stands in, and the channel comes back when the break ends.
+//
+// Pluto TV channels need a Pluto session before they play (pluto.js).
 Page {
     id: page
     property var channels: []
@@ -27,7 +30,40 @@ Page {
     property bool onBreak: false     // the break channel is standing in for an ad break
     property bool breakHold: false   // stay on the channel for the rest of this break
 
+    // The channel on screen (the break channel during a break) and the address it plays
+    // from: the list's own, or for Pluto the one in a session opened for it.
+    readonly property var screenChannel: onBreak && breakChannel ? breakChannel : (channel ? channel : null)
+    property string address: ""
+    property int opening: 0          // counts sessions asked for, so a late answer is ignored
+
     header: Item {}
+
+    onScreenChannelChanged: openScreenChannel()
+
+    function openScreenChannel() {
+        var target = screenChannel;
+        var ticket = ++opening;
+        address = "";
+        if (!target) {
+            return;
+        }
+        if (Pluto.channelId(target.url) === "") {
+            address = target.url;
+            video.play();
+            return;
+        }
+        Pluto.openSession(target.url, root.plutoClient, function (session) {
+            if (ticket !== opening) {
+                return;
+            }
+            // Without a session the list's own address is tried, and fails like any dead channel.
+            if (session === "") {
+                console.log("Revell T.V: no Pluto session for", target.name);
+            }
+            address = session !== "" ? session : target.url;
+            video.play();
+        });
+    }
 
     onPlayingChanged: if (playing) hideTimer.restart()
 
@@ -46,7 +82,6 @@ Page {
         breakHold = false;
         index = (index + step + channels.length) % channels.length;
         showControls(true);
-        video.play();
     }
 
     // The watcher changed its mind about whether the viewer is in a break.
@@ -101,7 +136,7 @@ Page {
         anchors.fill: parent
         autoPlay: true
         fillMode: VideoOutput.PreserveAspectFit
-        source: page.onBreak && page.breakChannel ? page.breakChannel.url : (page.channel ? page.channel.url : "")
+        source: page.address
         onSourceChanged: {
             page.slow = false;
             slowTimer.restart();
@@ -239,6 +274,7 @@ Page {
     AdWatcher {
         id: adWatcher
         url: page.watchingForAds ? page.channel.url : ""
+        clientId: root.plutoClient
         onNowAdChanged: page.adSignal()
         onSoonAdChanged: page.adSignal()
     }
@@ -291,12 +327,15 @@ Page {
         screenSaverEnabled: false
     }
 
-    // The page is not in the window yet while it is being made, so go full screen just after.
-    Component.onCompleted: Qt.callLater(function () {
-        if (page.Window.window) {
-            page.Window.window.visibility = Window.FullScreen;
-        }
-    })
+    Component.onCompleted: {
+        openScreenChannel();
+        // The page is not in the window yet while it is being made, so go full screen just after.
+        Qt.callLater(function () {
+            if (page.Window.window) {
+                page.Window.window.visibility = Window.FullScreen;
+            }
+        });
+    }
 
     Component.onDestruction: {
         screenSaver.screenSaverEnabled = true;

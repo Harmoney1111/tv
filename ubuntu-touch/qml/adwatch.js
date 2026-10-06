@@ -56,17 +56,6 @@ function analyse(text, lagSegments) {
     return { nowAd: segments[viewer], soonAd: segments[soon] };
 }
 
-// Pluto hands out per-viewer addresses through a redirect that this phone's
-// XMLHttpRequest follows without saying where it went, so rebuild where it leads.
-function playlistBase(url) {
-    var mark = url.indexOf("jmp2.uk/plu-");
-    if (mark < 0) {
-        return url;
-    }
-    var channel = url.substring(mark + 12).split(".")[0];
-    return "https://stitcher-ipv4.pluto.tv/v2/stitch/embed/hls/channel/" + channel + "/master.m3u8";
-}
-
 // The first variant of a master playlist, or "" when the text is already a media playlist.
 function firstVariant(text, base) {
     if (text.indexOf("#EXT-X-STREAM-INF") < 0) {

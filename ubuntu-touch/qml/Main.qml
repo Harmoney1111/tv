@@ -5,6 +5,7 @@ import QtQuick 2.12
 import Qt.labs.settings 1.0
 import Lomiri.Components 1.3
 import "channels.js" as Channels
+import "pluto.js" as Pluto
 
 MainView {
     id: root
@@ -25,12 +26,15 @@ MainView {
 
     property alias adSkip: settings.adSkip
     readonly property var breakChannel: findBreakChannel(channels, settings.breakChannelId)
+    // Pluto knows this phone by one id; each channel it plays still gets a new session.
+    readonly property string plutoClient: settings.plutoClient
 
     Settings {
         id: settings
         property string saved: "[]"
         property bool adSkip: true
         property string breakChannelId: ""
+        property string plutoClient: ""
     }
 
     function load() {
@@ -147,6 +151,9 @@ MainView {
     }
 
     Component.onCompleted: {
+        if (settings.plutoClient === "") {
+            settings.plutoClient = Pluto.newClientId();
+        }
         stack.push(homePage);
         load();
     }

@@ -1,13 +1,18 @@
 import QtQuick 2.12
 import "adwatch.js" as AdWatch
+import "pluto.js" as Pluto
 
 // Re-reads the playlist of the channel being watched every 4 seconds and says whether
 // the viewer is in an ad break now (nowAd) and still will be in a few seconds (soonAd).
 // A new Pluto session opens with an ad bumper of its own, so nothing counts until the
 // watcher has seen the programme once (armed).
+//
+// A Pluto channel gets a session of its own here, apart from the player's, because the
+// player moves to the break channel while this keeps watching.
 Item {
     id: watcher
     property string url: ""
+    property string clientId: ""
     property int lagSegments: 3
     property bool armed: false
     property bool nowAd: false
@@ -15,6 +20,8 @@ Item {
     property double lastReport: 0
 
     property string mediaUrl: ""
+    property string sessionUrl: ""
+    property double sessionAsked: 0
     property var request: null
     property double requestStarted: 0
 
@@ -29,6 +36,8 @@ Item {
         nowAd = false;
         soonAd = false;
         mediaUrl = "";
+        sessionUrl = "";
+        sessionAsked = 0;
         lastReport = 0;
         poll.running = url !== "";
         if (poll.running) {
@@ -68,12 +77,27 @@ Item {
             fetch(mediaUrl, report);
             return;
         }
-        fetch(url, function (text) {
+        if (Pluto.channelId(url) !== "" && sessionUrl === "") {
+            // Ask again if Pluto did not answer, or has not within 15 seconds.
+            if (Date.now() - sessionAsked > 15000) {
+                var forUrl = url;
+                sessionAsked = Date.now();
+                Pluto.openSession(url, clientId, function (session) {
+                    if (forUrl === watcher.url) {
+                        sessionUrl = session;
+                        sessionAsked = session !== "" ? sessionAsked : 0;
+                    }
+                });
+            }
+            return;
+        }
+        var master = sessionUrl !== "" ? sessionUrl : url;
+        fetch(master, function (text) {
             if (text === "") {
                 return;
             }
-            var variant = AdWatch.firstVariant(text, AdWatch.playlistBase(url));
-            mediaUrl = variant !== "" ? variant : url;
+            var variant = AdWatch.firstVariant(text, master);
+            mediaUrl = variant !== "" ? variant : master;
             if (variant === "") {
                 report(text);
             }
