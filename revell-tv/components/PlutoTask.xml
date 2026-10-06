@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="PlutoTask" extends="Task">
+    <interface>
+        <!-- in: the channel's jmp2.uk address from the list, and this Roku's Pluto id -->
+        <field id="url" type="string" />
+        <field id="clientId" type="string" />
+        <!-- out: the channel's address in a new Pluto session ("" when Pluto did not answer), then done -->
+        <field id="sessionUrl" type="string" />
+        <field id="done" type="boolean" alwaysNotify="true" />
+    </interface>
+    <script type="text/brightscript" uri="pkg:/components/Pluto.brs" />
+    <script type="text/brightscript" uri="pkg:/components/PlutoTask.brs" />
+</component>

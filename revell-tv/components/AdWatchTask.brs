@@ -11,7 +11,13 @@ end sub
 
 sub watch()
     m.armed = false
-    playlistUrl = findMediaPlaylist(m.top.url)
+    url = m.top.url
+    ' A Pluto channel gets a session of its own here, apart from the player's,
+    ' because the player moves to the break channel while this keeps watching.
+    plutoId = plutoChannelId(url)
+    if plutoId <> "" then url = plutoSessionUrl(plutoId, m.top.clientId)
+    if url = "" then return
+    playlistUrl = findMediaPlaylist(url)
     if playlistUrl = "" then return
     print "ad watch: following "; playlistUrl.Left(110)
 
@@ -83,18 +89,6 @@ function findMediaPlaylist(url as string) as string
     response = fetchText(url)
     if response.text = "" then return ""
     base = response.finalUrl
-
-    ' Pluto hands out per-viewer addresses through a redirect. If the redirect
-    ' did not show up in the response, rebuild the address it leads to.
-    if base = url then
-        mark = Instr(1, url, "jmp2.uk/plu-")
-        if mark > 0 then
-            channel = Mid(url, mark + 12)
-            dot = Instr(1, channel, ".")
-            if dot > 0 then channel = Left(channel, dot - 1)
-            base = "https://stitcher-ipv4.pluto.tv/v2/stitch/embed/hls/channel/" + channel + "/master.m3u8"
-        end if
-    end if
 
     if Instr(1, response.text, "#EXT-X-STREAM-INF") = 0 then return base
     for each raw in response.text.Split(Chr(10))

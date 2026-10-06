@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <component name="MainScene" extends="Scene">
     <script type="text/brightscript" uri="pkg:/components/AdRules.brs" />
+    <script type="text/brightscript" uri="pkg:/components/Pluto.brs" />
     <script type="text/brightscript" uri="pkg:/components/MainScene.brs" />
     <children>
         <Poster id="wallpaper" uri="pkg:/images/wallpaper.jpg" width="1280" height="720" />

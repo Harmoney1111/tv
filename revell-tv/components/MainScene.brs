@@ -9,6 +9,8 @@
 '
 ' Back while watching keeps the channel playing in a window beside the list;
 ' picking it again makes it full screen, and Back on the menu stops it.
+'
+' Pluto TV channels need a Pluto session before they play (Pluto.brs, PlutoTask).
 
 sub init()
     m.menuList = m.top.findNode("categories")
@@ -28,6 +30,12 @@ sub init()
     m.benchedIds = readList("benched")
     m.adSkip = (readSetting("adskip", "on") = "on")
     m.breakChannelId = readSetting("breakchannel", "")
+    ' Pluto knows this Roku by one id; each channel it plays still gets a new session.
+    m.plutoClient = readSetting("plutoclient", "")
+    if m.plutoClient = "" then
+        m.plutoClient = CreateObject("roDeviceInfo").GetRandomUUID()
+        writeSetting("plutoclient", m.plutoClient)
+    end if
 
     m.loaded = false
     m.total = 0
@@ -46,6 +54,8 @@ sub init()
     m.onBreak = false      ' the music channel is standing in for an ad break
     m.breakHold = false    ' the viewer asked to stay on the channel through this break
     m.segmentArmed = false ' the player has shown some programme since the stream started
+    m.pluto = invalid      ' PlutoTask opening a session for the channel about to play
+    m.plutoChannel = invalid
 
     m.menuList.observeField("itemFocused", "onMenuFocused")
     m.menuList.observeField("itemSelected", "onMenuSelected")
@@ -101,6 +111,25 @@ sub onPlaylistLoaded()
     m.playlist = m.task.content
     m.popular = m.task.popular
     m.total = m.task.total
+
+    ' Until 1.5.0 every Pluto channel failed here (see Pluto.brs), so the Pluto
+    ' channels this Roku benched get one more chance.
+    if readSetting("plutoretry", "") = "" then
+        plutoIds = {}
+        for each category in m.playlist.getChildren(-1, 0)
+            for each item in category.getChildren(-1, 0)
+                if plutoChannelId(item.url) <> "" then plutoIds[item.id] = true
+            end for
+        end for
+        kept = []
+        for each id in m.benchedIds
+            if not plutoIds.DoesExist(id) then kept.Push(id)
+        end for
+        print "pluto: let "; m.benchedIds.Count() - kept.Count(); " channels out of the penalty box"
+        m.benchedIds = kept
+        writeList("benched", kept)
+        writeSetting("plutoretry", "done")
+    end if
 
     benched = {}
     for each id in m.benchedIds
@@ -283,14 +312,53 @@ sub startStream(channel as object)
     ' Every new Pluto session opens with an ad bumper, so the player's own ad
     ' segments only count once it has shown some of the programme.
     m.segmentArmed = false
+    stopPluto()
+    m.video.visible = true
+    if m.fullScreen then m.video.setFocus(true)
+
+    if plutoChannelId(channel.url) <> "" then
+        ' Stop the last channel so none of its state changes count for this one.
+        m.video.control = "stop"
+        m.plutoChannel = channel
+        m.pluto = CreateObject("roSGNode", "PlutoTask")
+        m.pluto.url = channel.url
+        m.pluto.clientId = m.plutoClient
+        m.pluto.observeField("done", "onPlutoSession")
+        m.pluto.control = "RUN"
+        return
+    end if
+    playAddress(channel, channel.url)
+end sub
+
+sub onPlutoSession()
+    if m.pluto = invalid then return
+    address = m.pluto.sessionUrl
+    channel = m.plutoChannel
+    stopPluto()
+    if not m.playing then return
+    ' Without a session the list's own address is tried, and when that fails
+    ' the player's error handling takes over as for any other channel.
+    if address = "" then
+        print "pluto: no session for "; channel.title
+        address = channel.url
+    end if
+    playAddress(channel, address)
+end sub
+
+sub stopPluto()
+    if m.pluto = invalid then return
+    m.pluto.unobserveField("done")
+    m.pluto = invalid
+    m.plutoChannel = invalid
+end sub
+
+sub playAddress(channel as object, address as string)
     content = CreateObject("roSGNode", "ContentNode")
     content.title = channel.title
-    content.url = channel.url
+    content.url = address
     content.streamFormat = channel.streamFormat
     content.live = true
     m.video.content = content
-    m.video.visible = true
-    if m.fullScreen then m.video.setFocus(true)
     m.video.control = "play"
 end sub
 
@@ -301,6 +369,7 @@ sub stopVideo()
     m.onBreak = false
     m.banner.visible = false
     stopWatch()
+    stopPluto()
     m.video.control = "stop"
     m.video.visible = false
     m.preview.visible = false
@@ -419,6 +488,7 @@ sub startWatch()
     m.watch.observeField("nowAd", "onAdSignal")
     m.watch.observeField("soonAd", "onAdSignal")
     m.watch.url = m.main.url
+    m.watch.clientId = m.plutoClient
     m.watch.control = "RUN"
 end sub
 

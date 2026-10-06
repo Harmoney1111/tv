@@ -16,6 +16,8 @@ Free English-language TV channels, each one checked to be working when the list 
 
 The shortcuts read the list from the web every time, so they always open the newest version.
 
+Pluto TV channels (the `jmp2.uk` addresses, about 280 of them) do not open in VLC since October 2026: Pluto stopped serving those addresses. The Roku app still plays them, because it opens a Pluto session for each one first.
+
 ## Ad skip (Roku and Ubuntu Touch apps)
 
 Many free channels mark their ad breaks in the stream, and most Pluto TV channels do. During a marked break the apps switch to a channel you choose (MTV Biggest Pop unless you pick another) and come back when the break is over.
