@@ -11,6 +11,7 @@
 ' picking it again makes it full screen, and Back on the menu stops it.
 '
 ' Pluto TV channels need a Pluto session before they play (Pluto.brs, PlutoTask).
+' Plex channels get a Plex token added when the lists load (Plex.brs, PlaylistTask).
 
 sub init()
     m.menuList = m.top.findNode("categories")
@@ -68,6 +69,7 @@ sub init()
     m.task.observeField("content", "onPlaylistLoaded")
     m.task.observeField("error", "onPlaylistError")
     m.task.url = "https://harmoney1111.github.io/tv/english-tv.m3u"
+    m.task.clientId = m.plutoClient   ' Plex knows this Roku by the same id
     m.task.control = "RUN"
 end sub
 

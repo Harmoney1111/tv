@@ -1,5 +1,6 @@
 ' Downloads the M3U channel list and turns it into categories of channels.
-' Also downloads the scanner's penalty box (channels that did not load).
+' Adds the Plex channels (Plex.brs) and downloads the scanner's penalty box
+' (channels that did not load).
 
 sub init()
     m.top.functionName = "loadPlaylist"
@@ -17,6 +18,7 @@ sub loadPlaylist()
         m.top.error = "The channel list came back empty. Close and reopen Revell T.V to try again."
         return
     end if
+    addPlex(list)
 
     ' Alphabetical, with the uncategorised channels last.
     names = []
@@ -128,6 +130,31 @@ function parseChannels(text as string) as object
 
     return { channels: channels, groups: groups, popular: popular }
 end function
+
+' Adds the Plex channels, with this Roku's Plex token in their addresses, to the
+' main list's categories. Without plex.m3u or a token the app carries on without them.
+sub addPlex(list as object)
+    plexText = download(m.top.url.Replace("english-tv.m3u", "plex.m3u"))
+    if plexText = "" then return
+    token = plexToken(m.top.clientId)
+    if token = "" then
+        print "plex: no token, Plex channels left out"
+        return
+    end if
+
+    plex = parseChannels(plexText)
+    for each channel in plex.channels
+        channel.url = channel.url + "?X-Plex-Token=" + token
+        list.channels.Push(channel)
+    end for
+    for each name in plex.groups
+        if not list.groups.DoesExist(name) then list.groups[name] = []
+        list.groups[name].Append(plex.groups[name])
+        list.groups[name].SortBy("title", "i")
+    end for
+    list.popular.Append(plex.popular)
+    list.popular.SortBy("title", "i")
+end sub
 
 sub addChannels(parent as object, channels as object)
     for each channel in channels
