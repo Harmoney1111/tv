@@ -6,6 +6,7 @@ import Qt.labs.settings 1.0
 import Lomiri.Components 1.3
 import "channels.js" as Channels
 import "pluto.js" as Pluto
+import "plex.js" as Plex
 
 MainView {
     id: root
@@ -27,6 +28,7 @@ MainView {
     property alias adSkip: settings.adSkip
     readonly property var breakChannel: findBreakChannel(channels, settings.breakChannelId)
     // Pluto knows this phone by one id; each channel it plays still gets a new session.
+    // Plex knows it by the same id.
     readonly property string plutoClient: settings.plutoClient
 
     Settings {
@@ -39,23 +41,52 @@ MainView {
 
     function load() {
         listState = "loading";
-        var request = new XMLHttpRequest();
-        request.onreadystatechange = function () {
-            if (request.readyState !== XMLHttpRequest.DONE) {
-                return;
-            }
-            var list = request.status === 200 ? Channels.parse(request.responseText) : [];
+        download(listAddress, function (text) {
+            var list = Channels.parse(text);
             if (list.length === 0) {
                 listState = "failed";
                 return;
             }
-            channels = list;
-            refreshSaved();
-            listState = "ready";
-            openFromArguments();
+            // The Plex channels come in a list of their own and play with a Plex token
+            // added to their addresses (plex.js). Without them the app carries on.
+            download(listAddress.replace("english-tv.m3u", "plex.m3u"), function (plexText) {
+                var plex = Channels.parse(plexText);
+                if (plex.length === 0) {
+                    show(list);
+                    return;
+                }
+                Plex.token(plutoClient, function (token) {
+                    if (token === "") {
+                        console.log("Revell T.V: no Plex token, Plex channels left out");
+                        show(list);
+                        return;
+                    }
+                    plex.forEach(function (channel) { channel.url += "?X-Plex-Token=" + token; });
+                    show(list.concat(plex).sort(function (a, b) {
+                        return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+                    }));
+                });
+            });
+        });
+    }
+
+    // Calls done(text), or done("") when the address does not answer.
+    function download(address, done) {
+        var request = new XMLHttpRequest();
+        request.onreadystatechange = function () {
+            if (request.readyState === XMLHttpRequest.DONE) {
+                done(request.status === 200 ? request.responseText : "");
+            }
         };
-        request.open("GET", listAddress);
+        request.open("GET", address);
         request.send();
+    }
+
+    function show(list) {
+        channels = list;
+        refreshSaved();
+        listState = "ready";
+        openFromArguments();
     }
 
     function refreshSaved() {

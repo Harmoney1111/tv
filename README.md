@@ -18,7 +18,7 @@ The shortcuts read the list from the web every time, so they always open the new
 
 Pluto TV channels (the `jmp2.uk` addresses, about 280 of them) do not open in VLC since October 2026: Pluto stopped serving those addresses. The Roku and Ubuntu Touch apps still play them, because they open a Pluto session for each one first.
 
-Plex's free channels are in a list of their own, [`plex.m3u`](plex.m3u). They need a Plex token, which VLC cannot get by itself; the Roku app (version 1.6 and later) gets an anonymous one and lists them with the other channels.
+Plex's free channels are in a list of their own, [`plex.m3u`](plex.m3u). They need a Plex token, which VLC cannot get by itself; the Roku app (1.6 and later) and the Ubuntu Touch app (1.3 and later) get an anonymous one and list them with the other channels.
 
 ## Ad skip (Roku and Ubuntu Touch apps)
 
