@@ -89,5 +89,28 @@ function resolveUrl(base, reference) {
     if (lastSlash <= schemeEnd + 2) {
         return base + "/" + reference;
     }
-    return base.substring(0, lastSlash + 1) + reference;
+    return withoutDots(base.substring(0, lastSlash + 1) + reference);
+}
+
+// Works out "." and ".." in an address's path; some servers refuse them.
+function withoutDots(url) {
+    var query = "";
+    var mark = url.indexOf("?");
+    if (mark >= 0) {
+        query = url.substring(mark);
+        url = url.substring(0, mark);
+    }
+    var hostEnd = url.indexOf("/", url.indexOf("://") + 3);
+    if (hostEnd < 0) {
+        return url + query;
+    }
+    var path = [];
+    url.substring(hostEnd + 1).split("/").forEach(function (part) {
+        if (part === "..") {
+            path.pop();
+        } else if (part !== ".") {
+            path.push(part);
+        }
+    });
+    return url.substring(0, hostEnd + 1) + path.join("/") + query;
 }

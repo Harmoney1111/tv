@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=Revell T.V
 Comment=Free English-language TV channels
-Exec=qmlscene %U qml/Main.qml
+Exec=env QML_XHR_ALLOW_FILE_WRITE=1 qmlscene %U qml/Main.qml
 Icon=assets/icon.png
 Terminal=false
 Type=Application

@@ -4,6 +4,7 @@ import QtMultimedia 5.12
 import QtSystemInfo 5.0
 import Lomiri.Components 1.3
 import "pluto.js" as Pluto
+import "quality.js" as Quality
 
 // Full screen video. Tap to show or hide the controls; swipe left or right to change channel.
 //
@@ -11,6 +12,10 @@ import "pluto.js" as Pluto
 // break the chosen break channel stands in, and the channel comes back when the break ends.
 //
 // Pluto TV channels need a Pluto session before they play (pluto.js).
+//
+// The phone's video decoder fails when a stream changes picture size, so a channel plays
+// one variant of its stream (quality.js). When the decoder fails anyway the player still
+// says it is playing, so a picture that stops moving gets the channel reopened.
 Page {
     id: page
     property var channels: []
@@ -34,22 +39,37 @@ Page {
     // from: the list's own, or for Pluto the one in a session opened for it.
     readonly property var screenChannel: onBreak && breakChannel ? breakChannel : (channel ? channel : null)
     property string address: ""
+    property string master: ""       // the stream's own address, when a variant of it plays
     property int opening: 0          // counts sessions asked for, so a late answer is ignored
+    property bool reachedPlaying: false   // the picture has moved (the player says "playing" before it does)
+    property int reopened: 0         // times the channel was reopened since it last played a minute
+    property int lastPosition: 0
+    property int stillChecks: 0      // checks in a row that found the picture where it was
+    // Where a playlist of the app's own goes (see playOwnPlaylist). The media service takes it
+    // from the app's cache folder; writing it needs QML_XHR_ALLOW_FILE_WRITE=1, which
+    // the .desktop file sets.
+    readonly property string playlistFile: "file:///home/phablet/.cache/revell-tv.harmoney1111/channel.m3u8"
 
     header: Item {}
 
-    onScreenChannelChanged: openScreenChannel()
+    onScreenChannelChanged: {
+        reopened = 0;
+        openScreenChannel();
+    }
 
     function openScreenChannel() {
         var target = screenChannel;
         var ticket = ++opening;
         address = "";
+        master = "";
+        reachedPlaying = false;
+        stillChecks = 0;
+        lastPosition = 0;
         if (!target) {
             return;
         }
         if (Pluto.channelId(target.url) === "") {
-            address = target.url;
-            video.play();
+            playSteady(target.url, ticket);
             return;
         }
         Pluto.openSession(target.url, root.plutoClient, function (session) {
@@ -60,19 +80,88 @@ Page {
             if (session === "") {
                 console.log("Revell T.V: no Pluto session for", target.name);
             }
-            address = session !== "" ? session : target.url;
-            video.play();
+            playSteady(session !== "" ? session : target.url, ticket);
         });
+    }
+
+    // Plays one variant of the stream, or the stream itself when it has none to choose
+    // from or its playlist does not answer.
+    function playSteady(url, ticket) {
+        var xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState !== XMLHttpRequest.DONE || ticket !== opening) {
+                return;
+            }
+            var choice = xhr.status === 200 ? Quality.steadyChoice(xhr.responseText, url) : null;
+            if (choice && choice.playlist) {
+                playOwnPlaylist(choice.playlist, url, ticket);
+                return;
+            }
+            master = choice ? url : "";
+            address = choice ? choice.url : url;
+            video.play();
+        };
+        xhr.open("GET", url);
+        xhr.send();
+    }
+
+    // Saves a playlist of one variant and its sound and plays it. If the file cannot be
+    // written, the old one plays or nothing does, and the stream itself takes over.
+    function playOwnPlaylist(text, url, ticket) {
+        var xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState !== XMLHttpRequest.DONE || ticket !== opening) {
+                return;
+            }
+            master = url;
+            address = playlistFile;
+            video.play();
+        };
+        xhr.open("PUT", playlistFile);
+        xhr.send(text);
     }
 
     onPlayingChanged: if (playing) hideTimer.restart()
 
     onFailedChanged: {
+        // Without an address (while a channel opens) the player reports a missing file.
+        if (!failed || address === "") {
+            return;
+        }
         // The break channel let us down: go back to the show and sit this break out.
-        if (failed && onBreak) {
+        if (onBreak) {
             console.log("Revell T.V: break channel failed");
             leaveBreak(true);
+            return;
         }
+        if (!reachedPlaying && master !== "") {
+            playMaster("the variant failed");
+            return;
+        }
+        // It played and then stopped: open the channel again.
+        if (reachedPlaying) {
+            reopen("it stopped");
+        }
+    }
+
+    // The chosen variant did not start (a playlist that sends players elsewhere can make
+    // its variants' addresses wrong): play the stream itself.
+    function playMaster(why) {
+        console.log("Revell T.V: playing the whole stream of", screenChannel ? screenChannel.name : "", "because", why);
+        address = master;
+        master = "";
+        stillChecks = 0;
+        video.play();
+    }
+
+    // Opens the channel again, a few times at most until it has played a minute.
+    function reopen(why) {
+        if (reopened >= 5 || reopenTimer.running) {
+            return;
+        }
+        reopened++;
+        console.log("Revell T.V: reopening", screenChannel ? screenChannel.name : "", "because", why, "(" + reopened + ")");
+        reopenTimer.restart();
     }
 
     onWatchingForAdsChanged: if (!watchingForAds) leaveBreak(false)
@@ -162,14 +251,14 @@ Page {
 
     ActivityIndicator {
         anchors.centerIn: parent
-        running: !page.playing && !page.failed
+        running: !page.playing && (!page.failed || reopenTimer.running)
     }
 
     Column {
         anchors.centerIn: parent
         width: Math.min(parent.width - units.gu(8), units.gu(50))
         spacing: units.gu(2)
-        visible: page.failed || (page.slow && !page.playing)
+        visible: (page.failed && !reopenTimer.running) || (page.slow && !page.playing)
 
         Label {
             width: parent.width
@@ -262,6 +351,46 @@ Page {
         id: hideTimer
         interval: 4000
         onTriggered: if (page.playing) page.controlsShown = false
+    }
+
+    Timer {
+        id: reopenTimer
+        interval: 1000
+        onTriggered: page.openScreenChannel()
+    }
+
+    // The player's position tells whether the picture moves. The decoder failing leaves
+    // the player "playing" with its position stuck or below zero; nine seconds without the
+    // picture moving count as stopped. A variant that never moves gives way to the stream.
+    Timer {
+        interval: 3000
+        repeat: true
+        running: page.playing && page.address !== "" && !reopenTimer.running
+        onTriggered: {
+            var position = video.position;
+            if (position > 0 && position !== page.lastPosition) {
+                page.reachedPlaying = true;
+                page.stillChecks = 0;
+            } else {
+                page.stillChecks++;
+            }
+            page.lastPosition = position;
+            if (page.stillChecks >= 3) {
+                page.stillChecks = 0;
+                if (!page.reachedPlaying && page.master !== "") {
+                    page.playMaster("the variant did not start");
+                } else if (page.reachedPlaying) {
+                    page.reopen("the picture stopped");
+                }
+            }
+        }
+    }
+
+    // A minute of playing, with the picture moving, clears the count of reopenings.
+    Timer {
+        interval: 60000
+        running: page.playing
+        onTriggered: if (page.stillChecks === 0 && video.position > 0) page.reopened = 0
     }
 
     Timer {
